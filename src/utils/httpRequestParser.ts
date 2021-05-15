@@ -1,10 +1,12 @@
 import * as fs from 'fs-extra';
 import { EOL } from 'os';
 import { Stream } from 'stream';
+import { RequestHeaders } from '../models/base';
 import { RestClientSettings } from '../models/configurationSettings';
 import { FormParamEncodingStrategy } from '../models/formParamEncodingStrategy';
 import { HttpRequest } from '../models/httpRequest';
 import { RequestParser } from '../models/requestParser';
+import gjson from './gjson';
 import { MimeUtility } from './mimeUtility';
 import { getContentType, getHeader, removeHeader } from './misc';
 import { parseRequestHeaders, resolveRequestBodyPath } from './requestParserUtil';
@@ -18,6 +20,45 @@ enum ParseState {
     URL,
     Header,
     Body,
+}
+
+class HttpRequestParserHook {
+
+    private hooks: object
+
+    public constructor(
+        public headers: RequestHeaders, 
+        public body: string
+    ) {
+        this.headers = headers
+        this.body = body
+        
+        this.hooks = new Object()
+        this.register()
+    }
+
+    private register() {
+        this.hooks['@json.dump'] = this.jsonDumpHook
+    }
+
+    private jsonDumpHook(that: object, action: string) {
+        let oldbodyObj = JSON.parse(that.body);
+        let path = String(getHeader(that.headers, action));
+        let value = gjson.get(oldbodyObj, path);
+        let newBodyObj = gjson.set(oldbodyObj, path, JSON.stringify(value));
+
+        that.body = JSON.stringify(newBodyObj);
+    }
+
+    public newBodyAfterHooks(): string {
+        Object.keys(this.hooks).forEach((action) => {
+            let hookFunc = this.hooks[action]
+            hookFunc(this, action)
+            // 处理完后删除指令
+            removeHeader(this.headers, action)
+        })
+        return this.body
+    }
 }
 
 export class HttpRequestParser implements RequestParser {
@@ -112,6 +153,15 @@ export class HttpRequestParser implements RequestParser {
             } else {
                 body = encodeurl(body);
             }
+        }
+
+        // handle instruction of request header that is startswith '@'
+        if (body 
+            && typeof body === 'string'
+            && getContentType(headers)?.toLowerCase() === 'application/json' 
+        ) {
+            let parseHook = new HttpRequestParserHook(headers, body);
+            body = parseHook.newBodyAfterHooks();
         }
 
         // if Host header provided and url is relative path, change to absolute url
