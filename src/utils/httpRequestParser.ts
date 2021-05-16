@@ -42,12 +42,12 @@ class HttpRequestParserHook {
     }
 
     private jsonDumpHook(that: object, action: string) {
-        let oldbodyObj = JSON.parse(that.body);
-        let path = String(getHeader(that.headers, action));
+        let oldbodyObj = JSON.parse((<any>that).body);
+        let path = String(getHeader((<any>that).headers, action));
         let value = gjson.get(oldbodyObj, path);
         let newBodyObj = gjson.set(oldbodyObj, path, JSON.stringify(value));
 
-        that.body = JSON.stringify(newBodyObj);
+        (<any>that).body = JSON.stringify(newBodyObj);
     }
 
     public newBodyAfterHooks(): string {

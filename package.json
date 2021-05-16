@@ -1,9 +1,9 @@
 {
-  "name": "rest-client",
-  "displayName": "REST Client",
+  "name": "rest-client-work",
+  "displayName": "REST Client Work",
   "description": "REST Client for Visual Studio Code",
-  "version": "0.24.5",
-  "publisher": "humao",
+  "version": "9.24.5",
+  "publisher": "guan",
   "author": {
     "name": "Huachao Mao",
     "email": "huachaomao@gmail.com"
@@ -640,7 +640,7 @@
     "tslint": "^6.1.2",
     "typescript": "^3.7.3",
     "webpack": "^4.26.0",
-    "webpack-cli": "^3.1.0"
+    "webpack-cli": "^3.3.12"
   },
   "dependencies": {
     "adal-node": "^0.1.26",
